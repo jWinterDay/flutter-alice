@@ -1,85 +1,53 @@
-import 'dart:convert';
-
 import 'package:flutter_alice/model/alice_http_error.dart';
 import 'package:flutter_alice/model/alice_http_request.dart';
 import 'package:flutter_alice/model/alice_http_response.dart';
 
 class AliceHttpCall {
+  AliceHttpCall(this.id) {
+    loading = true;
+  }
+
   final int id;
-  String client = "";
+  String client = '';
   bool loading = true;
   bool secure = false;
-  String method = "";
-  String endpoint = "";
-  String server = "";
-  String uri = "";
+  String method = '';
+  String endpoint = '';
+  String server = '';
+  int? port;
+  String uri = '';
   int duration = 0;
 
   AliceHttpRequest? request;
   AliceHttpResponse? response;
   AliceHttpError? error;
 
-  AliceHttpCall(this.id) {
-    loading = true;
-  }
-
-  setResponse(AliceHttpResponse response) {
+  void setResponse(AliceHttpResponse response) {
     this.response = response;
     loading = false;
   }
 
   String getCurlCommand() {
-    var compressed = false;
-    var curlCmd = "curl";
-    curlCmd += " -X " + method;
-    var headers = request!.headers;
-    headers..remove('content-length');
-    headers.forEach((key, value) {
-      if ("Accept-Encoding" == key && "gzip" == value) {
+    bool compressed = false;
+    String curlCmd = 'curl';
+    curlCmd += ' -X $method';
+    final Map<String, dynamic> headers = request!.headers;
+    headers.forEach((String key, dynamic value) {
+      if ('Accept-Encoding' == key && 'gzip' == value) {
         compressed = true;
       }
-      curlCmd += " -H \'$key: $value\'";
+      curlCmd += " -H '$key: $value'";
     });
 
-    if (request?.body != null && request?.body != '') {
-      String? requestBody = jsonEncode(request?.body);
+    final String? requestBody = request?.body.toString();
+    if (requestBody != null && requestBody != '') {
       // try to keep to a single line and use a subshell to preserve any line breaks
-      curlCmd += " --data \$'" + requestBody.replaceAll("\n", "\\n") + "'";
+      curlCmd += " --data \$'${requestBody.replaceAll('\n', r'\n')}'";
     }
 
-    if (request?.formDataFields != null) {
-      var formDataFields = request?.formDataFields;
-      if (formDataFields != null && formDataFields.isNotEmpty) {
-        formDataFields.forEach((field) {
-          curlCmd += " --form \'${field.name}=${field.value}\'";
-        });
-      }
-    }
+    final String serverStr = server + (port == null ? '' : ':$port');
 
-    if (request?.formDataFiles != null) {
-      var formDataFiles = request?.formDataFiles;
-      if (formDataFiles != null && formDataFiles.isNotEmpty) {
-        formDataFiles.forEach((field) {
-          curlCmd += " --form \'${field.fileName}=@${field.fileName}\'";
-        });
-      }
-    }
-
-    String query = '';
-    if (request?.queryParameters != null) {
-      var queryParams = request?.queryParameters;
-      if (queryParams != null && queryParams.isNotEmpty) {
-        query += "?";
-        query += queryParams.entries
-            .map((e) =>
-                '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
-            .join('&');
-      }
-    }
-
-    curlCmd += ((compressed) ? " --compressed " : " ") +
-        "\'${secure ? 'https://' : 'http://'}$server$endpoint$query\'";
-
+    curlCmd += "${compressed ? ' --compressed ' : ' '}'${secure ? 'https://' : 'http://'}$serverStr$endpoint'";
     return curlCmd;
   }
 }

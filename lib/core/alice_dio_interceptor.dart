@@ -10,58 +10,58 @@ import 'package:flutter_alice/model/alice_http_request.dart';
 import 'package:flutter_alice/model/alice_http_response.dart';
 
 class AliceDioInterceptor extends InterceptorsWrapper {
-  /// AliceCore instance
-  final AliceCore aliceCore;
-
   /// Creates dio interceptor
   AliceDioInterceptor(this.aliceCore);
 
+  /// AliceCore instance
+  final AliceCore aliceCore;
+
   /// Handles dio request and creates alice http call based on it
   @override
-  void onRequest(
+  Future<void> onRequest(
     RequestOptions options,
     RequestInterceptorHandler handler,
-  ) {
-    AliceHttpCall call = new AliceHttpCall(options.hashCode);
+  ) async {
+    final AliceHttpCall call = AliceHttpCall(options.hashCode);
 
-    Uri uri = options.uri;
+    final Uri uri = options.uri;
     call.method = options.method;
-    var path = options.uri.path;
-    if (path.length == 0) {
-      path = "/";
+    String path = options.uri.path;
+    if (path.isEmpty) {
+      path = '/';
     }
     call.endpoint = path;
     call.server = uri.host;
-    call.client = "Dio";
+    call.port = uri.port;
+    call.client = 'Dio';
     call.uri = options.uri.toString();
 
-    if (uri.scheme == "https") {
+    if (uri.scheme == 'https') {
       call.secure = true;
     }
 
-    AliceHttpRequest request = AliceHttpRequest();
+    final AliceHttpRequest request = AliceHttpRequest();
 
-    var data = options.data;
+    final dynamic data = options.data;
     if (data == null) {
       request.size = 0;
-      request.body = "";
+      request.body = '';
     } else {
       if (data is FormData) {
-        request.body += "Form data";
+        request.body += 'Form data';
 
-        if (data.fields.isNotEmpty == true) {
-          List<AliceFormDataField> fields = [];
-          data.fields.forEach((entry) {
+        if (data.fields.isNotEmpty) {
+          final List<AliceFormDataField> fields = <AliceFormDataField>[];
+          for (final MapEntry<String, String> entry in data.fields) {
             fields.add(AliceFormDataField(entry.key, entry.value));
-          });
+          }
           request.formDataFields = fields;
         }
-        if (data.files.isNotEmpty == true) {
-          List<AliceFormDataFile> files = [];
-          data.files.forEach((entry) {
-            files.add(AliceFormDataFile(entry.value.filename!,
-                entry.value.contentType.toString(), entry.value.length));
-          });
+        if (data.files.isNotEmpty) {
+          final List<AliceFormDataFile> files = <AliceFormDataFile>[];
+          for (final MapEntry<String, MultipartFile> entry in data.files) {
+            files.add(AliceFormDataFile(entry.value.filename!, entry.value.contentType.toString(), entry.value.length));
+          }
 
           request.formDataFiles = files;
         }
@@ -74,26 +74,31 @@ class AliceDioInterceptor extends InterceptorsWrapper {
     request.time = DateTime.now();
     request.headers = options.headers;
     request.contentType = options.contentType.toString();
-    request.queryParameters = options.uri.queryParameters;
+    request.queryParameters = uri.queryParameters; // options.queryParameters;
 
     call.request = request;
     call.response = AliceHttpResponse();
 
-    aliceCore.addCall(call);
+    // print('++++++ alice onRequest: ${options.uri} hash = ${options.hashCode}');
+
+    aliceCore.addRequest(call);
+
     handler.next(options);
   }
 
   /// Handles dio response and adds data to alice http call
   @override
   void onResponse(
-    Response response,
+    Response<dynamic> response,
     ResponseInterceptorHandler handler,
   ) {
-    var httpResponse = AliceHttpResponse();
+    final AliceHttpResponse httpResponse = AliceHttpResponse();
     httpResponse.status = response.statusCode!;
 
+    // print('++++++ alice onResponse: ${response.requestOptions.uri} hash = ${response.requestOptions.hashCode}');
+
     if (response.data == null) {
-      httpResponse.body = "";
+      httpResponse.body = '';
       httpResponse.size = 0;
     } else {
       httpResponse.body = response.data;
@@ -101,13 +106,14 @@ class AliceDioInterceptor extends InterceptorsWrapper {
     }
 
     httpResponse.time = DateTime.now();
-    Map<String, String> headers = Map();
-    response.headers.forEach((header, values) {
+    final Map<String, String> headers = <String, String>{};
+    response.headers.forEach((String header, List<String> values) {
       headers[header] = values.toString();
     });
     httpResponse.headers = headers;
 
     aliceCore.addResponse(httpResponse, response.requestOptions.hashCode);
+
     handler.next(response);
   }
 
@@ -117,16 +123,29 @@ class AliceDioInterceptor extends InterceptorsWrapper {
     DioException error,
     ErrorInterceptorHandler handler,
   ) {
-    var httpError = AliceHttpError();
+    // error
+    final AliceHttpError httpError = AliceHttpError();
+    httpError.status = error.response?.statusCode ?? -1;
     httpError.error = error.toString();
+    httpError.body = error.response?.data;
+    httpError.headers = error.requestOptions.headers.map(
+      (String key, dynamic value) => MapEntry<String, String>(
+        key,
+        value.toString(),
+      ),
+    );
+
     if (error is Error) {
-      var basicError = error as Error;
+      final Error basicError = error as Error;
       httpError.stackTrace = basicError.stackTrace;
     }
 
     aliceCore.addError(httpError, error.requestOptions.hashCode);
-    var httpResponse = AliceHttpResponse();
+
+    // response
+    final AliceHttpResponse httpResponse = AliceHttpResponse();
     httpResponse.time = DateTime.now();
+
     if (error.response == null) {
       httpResponse.status = -1;
       aliceCore.addResponse(httpResponse, error.requestOptions.hashCode);
@@ -134,22 +153,23 @@ class AliceDioInterceptor extends InterceptorsWrapper {
       httpResponse.status = error.response!.statusCode!;
 
       if (error.response!.data == null) {
-        httpResponse.body = "";
+        httpResponse.body = '';
         httpResponse.size = 0;
       } else {
         httpResponse.body = error.response!.data;
         httpResponse.size = utf8.encode(error.response!.data.toString()).length;
       }
-      Map<String, String> headers = Map();
+      final Map<String, String> headers = <String, String>{};
       if (error.response?.headers != null) {
-        error.response!.headers.forEach((header, values) {
+        error.response!.headers.forEach((String header, List<String> values) {
           headers[header] = values.toString();
         });
       }
       httpResponse.headers = headers;
-      aliceCore.addResponse(
-          httpResponse, error.response!.requestOptions.hashCode);
+
+      aliceCore.addResponse(httpResponse, error.requestOptions.hashCode);
     }
+
     handler.next(error);
   }
 }

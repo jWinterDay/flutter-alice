@@ -10,26 +10,23 @@ import 'package:flutter_alice/ui/widget/alice_call_list_item_widget.dart';
 import 'alice_stats_screen.dart';
 
 class AliceCallsListScreen extends StatefulWidget {
+  const AliceCallsListScreen(this._aliceCore, {super.key});
   final AliceCore _aliceCore;
 
-  AliceCallsListScreen(this._aliceCore);
-
   @override
-  _AliceCallsListScreenState createState() => _AliceCallsListScreenState();
+  State createState() => _AliceCallsListScreenState();
 }
 
 class _AliceCallsListScreenState extends State<AliceCallsListScreen> {
+  _AliceCallsListScreenState() {
+    _menuItems.add(AliceMenuItem('Delete', Icons.delete));
+    _menuItems.add(AliceMenuItem('Stats', Icons.insert_chart));
+    _menuItems.add(AliceMenuItem('Save', Icons.save));
+  }
   AliceCore get aliceCore => widget._aliceCore;
   bool _searchEnabled = false;
-  final TextEditingController _queryTextEditingController =
-      TextEditingController();
-  List<AliceMenuItem> _menuItems = [];
-
-  _AliceCallsListScreenState() {
-    _menuItems.add(AliceMenuItem("Delete", Icons.delete));
-    _menuItems.add(AliceMenuItem("Stats", Icons.insert_chart));
-    _menuItems.add(AliceMenuItem("Save", Icons.save));
-  }
+  final TextEditingController _queryTextEditingController = TextEditingController();
+  final List<AliceMenuItem> _menuItems = <AliceMenuItem>[];
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +38,7 @@ class _AliceCallsListScreenState extends State<AliceCallsListScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: _searchEnabled ? _buildSearchField() : _buildTitleWidget(),
-          actions: [
+          actions: <Widget>[
             _buildSearchButton(),
             _buildMenuButton(),
           ],
@@ -59,7 +56,7 @@ class _AliceCallsListScreenState extends State<AliceCallsListScreen> {
 
   Widget _buildSearchButton() {
     return IconButton(
-      icon: Icon(Icons.search),
+      icon: const Icon(Icons.search),
       onPressed: _onSearchClicked,
     );
   }
@@ -68,28 +65,30 @@ class _AliceCallsListScreenState extends State<AliceCallsListScreen> {
     setState(() {
       _searchEnabled = !_searchEnabled;
       if (!_searchEnabled) {
-        _queryTextEditingController.text = "";
+        _queryTextEditingController.text = '';
       }
     });
   }
 
   Widget _buildMenuButton() {
     return PopupMenuButton<AliceMenuItem>(
-      onSelected: (AliceMenuItem item) => _onMenuItemSelected(item),
+      onSelected: _onMenuItemSelected,
       itemBuilder: (BuildContext context) {
         return _menuItems.map((AliceMenuItem item) {
           return PopupMenuItem<AliceMenuItem>(
             value: item,
-            child: Row(children: [
-              Icon(
-                item.iconData,
-                color: AliceConstants.lightRed,
-              ),
-              Padding(
-                padding: EdgeInsets.only(left: 10),
-              ),
-              Text(item.title)
-            ]),
+            child: Row(
+              children: <Widget>[
+                Icon(
+                  item.iconData,
+                  color: AliceConstants.lightRed,
+                ),
+                const Padding(
+                  padding: EdgeInsets.only(left: 10),
+                ),
+                Text(item.title),
+              ],
+            ),
           );
         }).toList();
       },
@@ -97,31 +96,31 @@ class _AliceCallsListScreenState extends State<AliceCallsListScreen> {
   }
 
   Widget _buildTitleWidget() {
-    return Text("Alice - Inspector");
+    return const Text('Alice - Inspector');
   }
 
   Widget _buildSearchField() {
     return TextField(
       controller: _queryTextEditingController,
       autofocus: true,
-      decoration: InputDecoration(
-        hintText: "Search http request...",
+      decoration: const InputDecoration(
+        hintText: 'Search http request...',
         hintStyle: TextStyle(
           fontSize: 16.0,
           color: Colors.white,
         ),
         // border: InputBorder,
       ),
-      style: TextStyle(fontSize: 16.0),
+      style: const TextStyle(fontSize: 16.0),
       onChanged: _updateSearchQuery,
     );
   }
 
   void _onMenuItemSelected(AliceMenuItem menuItem) {
-    if (menuItem.title == "Delete") {
+    if (menuItem.title == 'Delete') {
       _showRemoveDialog();
     }
-    if (menuItem.title == "Stats") {
+    if (menuItem.title == 'Stats') {
       _showStatsScreen();
     }
   }
@@ -129,15 +128,15 @@ class _AliceCallsListScreenState extends State<AliceCallsListScreen> {
   Widget _buildCallsListWrapper() {
     return StreamBuilder<List<AliceHttpCall>>(
       stream: aliceCore.callsSubject,
-      builder: (context, snapshot) {
-        List<AliceHttpCall> calls = snapshot.data ?? [];
-        String query = _queryTextEditingController.text.trim();
+      builder: (BuildContext context, AsyncSnapshot<List<AliceHttpCall>> snapshot) {
+        List<AliceHttpCall> calls = snapshot.data ?? <AliceHttpCall>[];
+        final String query = _queryTextEditingController.text.trim();
+
         if (query.isNotEmpty) {
-          calls = calls
-              .where((call) =>
-                  call.endpoint.toLowerCase().contains(query.toLowerCase()))
-              .toList();
+          calls =
+              calls.where((AliceHttpCall call) => call.endpoint.toLowerCase().contains(query.toLowerCase())).toList();
         }
+
         if (calls.isNotEmpty) {
           return _buildCallsListWidget(calls);
         } else {
@@ -149,37 +148,43 @@ class _AliceCallsListScreenState extends State<AliceCallsListScreen> {
 
   Widget _buildEmptyWidget() {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 32),
+      margin: const EdgeInsets.symmetric(horizontal: 32),
       child: Center(
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(
-            Icons.error_outline,
-            color: AliceConstants.orange,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            "There are no calls to show",
-            style: TextStyle(fontSize: 18),
-          ),
-          const SizedBox(height: 12),
-          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(
-              "• Check if you send any http request",
-              style: TextStyle(fontSize: 12),
-              textAlign: TextAlign.center,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Icon(
+              Icons.error_outline,
+              color: AliceConstants.orange,
             ),
-            Text(
-              "• Check your Alice configuration",
-              style: TextStyle(fontSize: 12),
-              textAlign: TextAlign.center,
+            const SizedBox(height: 6),
+            const Text(
+              'There are no calls to show',
+              style: TextStyle(fontSize: 18),
             ),
-            Text(
-              "• Check search filters",
-              style: TextStyle(fontSize: 12),
-              textAlign: TextAlign.center,
-            )
-          ])
-        ]),
+            const SizedBox(height: 12),
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  '• Check if you send any http request',
+                  style: TextStyle(fontSize: 12),
+                  textAlign: TextAlign.center,
+                ),
+                Text(
+                  '• Check your Alice configuration',
+                  style: TextStyle(fontSize: 12),
+                  textAlign: TextAlign.center,
+                ),
+                Text(
+                  '• Check search filters',
+                  style: TextStyle(fontSize: 12),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -187,8 +192,12 @@ class _AliceCallsListScreenState extends State<AliceCallsListScreen> {
   Widget _buildCallsListWidget(List<AliceHttpCall> calls) {
     return ListView.builder(
       itemCount: calls.length,
-      itemBuilder: (context, index) {
-        return AliceCallListItemWidget(calls[index], _onListItemClicked);
+      itemBuilder: (BuildContext context, int index) {
+        return AliceCallListItemWidget(
+          calls[index],
+          index: calls.length - index - 1,
+          _onListItemClicked,
+        );
       },
     );
   }
@@ -197,7 +206,7 @@ class _AliceCallsListScreenState extends State<AliceCallsListScreen> {
     Navigator.push(
       widget._aliceCore.getContext()!,
       MaterialPageRoute(
-        builder: (context) => AliceCallDetailsScreen(call, widget._aliceCore),
+        builder: (BuildContext context) => AliceCallDetailsScreen(call, widget._aliceCore),
       ),
     );
   }
@@ -205,12 +214,12 @@ class _AliceCallsListScreenState extends State<AliceCallsListScreen> {
   void _showRemoveDialog() {
     AliceAlertHelper.showAlert(
       context,
-      "Delete calls",
-      "Do you want to delete http calls?",
-      firstButtonTitle: "No",
-      firstButtonAction: () => {},
-      secondButtonTitle: "Yes",
-      secondButtonAction: () => _removeCalls(),
+      'Delete calls',
+      'Do you want to delete http calls?',
+      firstButtonTitle: 'No',
+      firstButtonAction: () => <dynamic, dynamic>{},
+      secondButtonTitle: 'Yes',
+      secondButtonAction: _removeCalls,
     );
   }
 
@@ -222,7 +231,7 @@ class _AliceCallsListScreenState extends State<AliceCallsListScreen> {
     Navigator.push(
       aliceCore.getContext()!,
       MaterialPageRoute(
-        builder: (context) => AliceStatsScreen(widget._aliceCore),
+        builder: (BuildContext context) => AliceStatsScreen(widget._aliceCore),
       ),
     );
   }

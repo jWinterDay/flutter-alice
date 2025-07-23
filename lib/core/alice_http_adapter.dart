@@ -7,45 +7,45 @@ import 'package:flutter_alice/model/alice_http_response.dart';
 import 'package:http/http.dart' as http;
 
 class AliceHttpAdapter {
-  /// AliceCore instance
-  final AliceCore aliceCore;
-
   /// Creates alice http adapter
   AliceHttpAdapter(this.aliceCore);
+
+  /// AliceCore instance
+  final AliceCore aliceCore;
 
   /// Handles http response. It creates both request and response from http call
   void onResponse(http.Response response, {dynamic body}) {
     if (response.request == null) {
       return;
     }
-    var request = response.request;
+    final http.BaseRequest? request = response.request;
 
-    AliceHttpCall call = AliceHttpCall(response.request.hashCode);
+    final AliceHttpCall call = AliceHttpCall(response.request.hashCode);
     call.loading = true;
-    call.client = "HttpClient (http package)";
+    call.client = 'HttpClient (http package)';
     call.uri = request!.url.toString();
     call.method = request.method;
-    var path = request.url.path;
-    if (path.length == 0) {
-      path = "/";
+    String path = request.url.path;
+    if (path.isEmpty) {
+      path = '/';
     }
     call.endpoint = path;
 
     call.server = request.url.host;
-    if (request.url.scheme == "https") {
+    if (request.url.scheme == 'https') {
       call.secure = true;
     }
 
-    AliceHttpRequest httpRequest = AliceHttpRequest();
+    final AliceHttpRequest httpRequest = AliceHttpRequest();
 
     if (response.request is http.Request) {
       // we are guranteed the existence of body and headers
-      httpRequest.body = body ?? (response.request as http.Request).body ?? "";
+      httpRequest.body = body ?? (response.request! as http.Request).body ?? '';
       httpRequest.size = utf8.encode(httpRequest.body.toString()).length;
-      httpRequest.headers = Map.from(response.request!.headers);
+      httpRequest.headers = Map<String, String>.from(response.request!.headers);
     } else if (body == null) {
       httpRequest.size = 0;
-      httpRequest.body = "";
+      httpRequest.body = '';
     } else {
       httpRequest.size = utf8.encode(body.toString()).length;
       httpRequest.body = body;
@@ -53,24 +53,24 @@ class AliceHttpAdapter {
 
     httpRequest.time = DateTime.now();
 
-    String? contentType = "unknown";
-    if (httpRequest.headers.containsKey("Content-Type")) {
-      contentType = httpRequest.headers["Content-Type"];
+    String? contentType = 'unknown';
+    if (httpRequest.headers.containsKey('Content-Type')) {
+      contentType = httpRequest.headers['Content-Type'];
     }
 
     httpRequest.contentType = contentType;
 
     httpRequest.queryParameters = response.request!.url.queryParameters;
 
-    AliceHttpResponse httpResponse = AliceHttpResponse();
+    final AliceHttpResponse httpResponse = AliceHttpResponse();
     httpResponse.status = response.statusCode;
     httpResponse.body = response.body;
 
-    httpResponse.size = utf8.encode(response.body.toString()).length;
+    httpResponse.size = utf8.encode(response.body).length;
     httpResponse.time = DateTime.now();
-    Map<String, String> responseHeaders = Map();
-    response.headers.forEach((header, values) {
-      responseHeaders[header] = values.toString();
+    final Map<String, String> responseHeaders = <String, String>{};
+    response.headers.forEach((String header, String values) {
+      responseHeaders[header] = values;
     });
     httpResponse.headers = responseHeaders;
 
@@ -79,6 +79,6 @@ class AliceHttpAdapter {
 
     call.loading = false;
     call.duration = 0;
-    aliceCore.addCall(call);
+    aliceCore.addRequest(call);
   }
 }

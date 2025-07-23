@@ -7,9 +7,12 @@ import 'package:flutter_alice/alice.dart';
 extension AliceHttpClientExtensions on Future<HttpClientRequest> {
   /// Intercept http client with alice. This extension method provides additional
   /// helpful method to intercept httpClientResponse.
-  Future<HttpClientResponse> interceptWithAlice(Alice alice,
-      {dynamic body, Map<String, dynamic>? headers}) async {
-    HttpClientRequest request = await this;
+  Future<HttpClientResponse> interceptWithAlice(
+    Alice alice, {
+    dynamic body,
+    Map<String, dynamic>? headers,
+  }) async {
+    final HttpClientRequest request = await this;
     if (body != null) {
       request.write(body);
     }
@@ -21,8 +24,8 @@ extension AliceHttpClientExtensions on Future<HttpClientRequest> {
       );
     }
     alice.onHttpClientRequest(request, body: body);
-    var httpResponse = await request.close();
-    var responseBody = await utf8.decoder.bind(httpResponse).join();
+    final HttpClientResponse httpResponse = await request.close();
+    final String responseBody = await utf8.decoder.bind(httpResponse).join();
     alice.onHttpClientResponse(httpResponse, request, body: responseBody);
     return httpResponse;
   }

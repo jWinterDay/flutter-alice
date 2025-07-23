@@ -1,6 +1,5 @@
 import 'dart:io';
 
-// import 'package:chopper/chopper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 // import 'package:flutter_alice/core/alice_chopper_response_interceptor.dart';
@@ -12,6 +11,26 @@ import 'package:flutter_alice/model/alice_http_call.dart';
 import 'package:http/http.dart' as http;
 
 class Alice {
+  /// Creates alice instance.
+  Alice({
+    GlobalKey<NavigatorState>? navigatorKey,
+    this.showNotification = true,
+    this.showInspectorOnShake = false,
+    this.darkTheme = false,
+    this.notificationIcon = '@mipmap/ic_launcher',
+  }) {
+    _navigatorKey = navigatorKey ?? GlobalKey<NavigatorState>();
+    _aliceCore = AliceCore(
+      navigatorKey: _navigatorKey,
+      showNotification: showNotification,
+      showInspectorOnShake: showInspectorOnShake,
+      darkTheme: darkTheme,
+      notificationIcon: notificationIcon,
+    );
+    _httpClientAdapter = AliceHttpClientAdapter(_aliceCore);
+    _httpAdapter = AliceHttpAdapter(_aliceCore);
+  }
+
   /// Should user be notified with notification if there's new request catched
   /// by Alice
   final bool showNotification;
@@ -30,25 +49,6 @@ class Alice {
   late AliceCore _aliceCore;
   late AliceHttpClientAdapter _httpClientAdapter;
   late AliceHttpAdapter _httpAdapter;
-
-  /// Creates alice instance.
-  Alice(
-      {GlobalKey<NavigatorState>? navigatorKey,
-      this.showNotification = true,
-      this.showInspectorOnShake = false,
-      this.darkTheme = false,
-      this.notificationIcon = "@mipmap/ic_launcher"}) {
-    _navigatorKey = navigatorKey ?? GlobalKey<NavigatorState>();
-    _aliceCore = AliceCore(
-      _navigatorKey,
-      showNotification,
-      showInspectorOnShake,
-      darkTheme,
-      notificationIcon,
-    );
-    _httpClientAdapter = AliceHttpClientAdapter(_aliceCore);
-    _httpAdapter = AliceHttpAdapter(_aliceCore);
-  }
 
   /// Set custom navigation key. This will help if there's route library.
   void setNavigatorKey(GlobalKey<NavigatorState> navigatorKey) {
@@ -71,9 +71,7 @@ class Alice {
   }
 
   /// Handle response from HttpClient
-  void onHttpClientResponse(
-      HttpClientResponse response, HttpClientRequest request,
-      {dynamic body}) {
+  void onHttpClientResponse(HttpClientResponse response, HttpClientRequest request, {dynamic body}) {
     _httpClientAdapter.onResponse(response, request, body: body);
   }
 
@@ -88,15 +86,15 @@ class Alice {
     _aliceCore.navigateToCallListScreen();
   }
 
-  // /// Get chopper interceptor. This should be added to Chopper instance.
+  /// Get chopper interceptor. This should be added to Chopper instance.
   // List<ResponseInterceptor> getChopperInterceptor() {
-  //   return [AliceChopperInterceptor(_aliceCore)];
+  //   return <ResponseInterceptor>[]; //AliceChopperInterceptor(_aliceCore)];
   // }
 
   /// Handle generic http call. Can be used to any http client.R
   void addHttpCall(AliceHttpCall aliceHttpCall) {
     assert(aliceHttpCall.request != null, "Http call request can't be null");
     assert(aliceHttpCall.response != null, "Http call response can't be null");
-    _aliceCore.addCall(aliceHttpCall);
+    _aliceCore.addRequest(aliceHttpCall);
   }
 }

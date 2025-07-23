@@ -7,43 +7,38 @@ import 'package:flutter_alice/ui/page/alice_stats_screen.dart';
 
 import 'alice_core.dart';
 import 'expandable_fab.dart';
-// import 'flutter_expandable_fab/expandable_fab.dart';
 
 class DebugPopUp extends StatefulWidget {
-  final VoidCallback onClicked;
-  final Stream<List<AliceHttpCall>> callsSubscription;
-  final AliceCore aliceCore;
-
   ///class widget to show overlay bubble describes the number request count and is a place to navigate to alice inspector.
   ///[onClicked] call back when user clicked in debug point
   ///[callsSubscription] the stream to listen how many request in app
   const DebugPopUp({
-    Key? key,
+    super.key,
     required this.onClicked,
     required this.callsSubscription,
     required this.aliceCore,
-  }) : super(key: key);
+  });
+  final VoidCallback onClicked;
+  final Stream<List<AliceHttpCall>> callsSubscription;
+  final AliceCore aliceCore;
 
   @override
-  _DebugPopUpState createState() => _DebugPopUpState();
+  State createState() => _DebugPopUpState();
 }
 
 class _DebugPopUpState extends State<DebugPopUp> {
-  final _expandedDistance = 80.0;
-  late Size _size = MediaQuery.of(context).size;
-  late double _rightSide = _expandedDistance + kToolbarHeight + 20;
   Offset _offset = Offset.zero;
+  final double _expandedDistance = 100.0;
 
   @override
-  void initState() {
-    super.initState();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _offset = Offset(
-        _size.width - _rightSide,
-        _size.height / 2 - _expandedDistance,
-      );
-    });
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final Size size = MediaQuery.of(context).size;
+    final double rightSide = _expandedDistance + kToolbarHeight + 20;
+    _offset = Offset(
+      size.width - rightSide,
+      size.height / 2 - _expandedDistance,
+    );
   }
 
   @override
@@ -51,13 +46,14 @@ class _DebugPopUpState extends State<DebugPopUp> {
     //wrap with SafeArea to support edge screen
     return SafeArea(
       child: Stack(
-        children: [
+        children: <Widget>[
           Positioned(
             left: _offset.dx,
             top: _offset.dy,
             child: GestureDetector(
-              onPanUpdate: (details) {
-                setState(() => _offset += details.delta);
+              onPanUpdate: (DragUpdateDetails details) {
+                _offset += details.delta;
+                setState(() {});
               },
               child: _buildDraggyWidget(
                 widget.onClicked,
@@ -79,46 +75,41 @@ class _DebugPopUpState extends State<DebugPopUp> {
       bigButton: Opacity(
         opacity: 0.6,
         child: FloatingActionButton(
-          child: StreamBuilder<List<AliceHttpCall>>(
-            initialData: [],
-            stream: stream,
-            builder: (_, sns) {
-              final counter = min(sns.data?.length ?? 0, 99);
-              return Text("$counter");
-            },
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(32),
-          ),
           backgroundColor: Colors.green,
           foregroundColor: Colors.white,
           onPressed: onClicked,
           mini: true,
           enableFeedback: true,
+          child: StreamBuilder<List<AliceHttpCall>>(
+            initialData: const <AliceHttpCall>[],
+            stream: stream,
+            builder: (_, AsyncSnapshot<List<AliceHttpCall>> sns) {
+              final int counter = min(sns.data?.length ?? 0, 99);
+              return Text('$counter');
+            },
+          ),
         ),
       ),
-      children: [
+      children: <Widget>[
         ActionButton(
-          onPressed: () {
-            widget.aliceCore.removeCalls();
-          },
-          icon: Icon(Icons.delete, color: Colors.white),
+          onPressed: () => widget.aliceCore.removeCalls(),
+          icon: const Icon(Icons.delete, color: Colors.white),
         ),
         ActionButton(
-          onPressed: () {
-            _showStatsScreen();
-          },
-          icon: Icon(Icons.insert_chart, color: Colors.white),
+          onPressed: _showStatsScreen,
+          icon: const Icon(Icons.insert_chart, color: Colors.white),
         ),
       ],
     );
   }
 
   void _showStatsScreen() {
-    Navigator.push(
-      widget.aliceCore.getContext()!,
-      MaterialPageRoute(
-        builder: (_) => AliceStatsScreen(widget.aliceCore),
+    unawaited(
+      Navigator.push(
+        widget.aliceCore.getContext()!,
+        MaterialPageRoute<dynamic>(
+          builder: (_) => AliceStatsScreen(widget.aliceCore),
+        ),
       ),
     );
   }

@@ -10,12 +10,12 @@ import 'package:flutter/material.dart';
 @immutable
 class ExpandableFab extends StatefulWidget {
   const ExpandableFab({
-    Key? key,
+    super.key,
     this.initialOpen,
     required this.distance,
     required this.children,
     required this.bigButton,
-  }) : super(key: key);
+  });
 
   final bool? initialOpen;
   final double distance;
@@ -23,11 +23,10 @@ class ExpandableFab extends StatefulWidget {
   final Widget bigButton;
 
   @override
-  _ExpandableFabState createState() => _ExpandableFabState();
+  State createState() => _ExpandableFabState();
 }
 
-class _ExpandableFabState extends State<ExpandableFab>
-    with SingleTickerProviderStateMixin {
+class _ExpandableFabState extends State<ExpandableFab> with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _expandAnimation;
   bool _open = false;
@@ -63,13 +62,13 @@ class _ExpandableFabState extends State<ExpandableFab>
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: widget.distance + 58,
       height: widget.distance + 58,
       child: Stack(
         clipBehavior: Clip.none,
         alignment: Alignment.bottomRight,
-        children: [
+        children: <Widget>[
           _buildTapToCloseFab(),
           ..._buildExpandingActionButtons(),
           _buildTapToOpenFab(),
@@ -82,7 +81,7 @@ class _ExpandableFabState extends State<ExpandableFab>
     return Opacity(
       opacity: _open ? 1.0 : 0.0,
       child: Material(
-        shape: CircleBorder(),
+        shape: const CircleBorder(),
         clipBehavior: Clip.antiAlias,
         elevation: 4.0,
         child: InkWell(
@@ -102,27 +101,23 @@ class _ExpandableFabState extends State<ExpandableFab>
   }
 
   List<Widget> _buildExpandingActionButtons() {
-    final children = <Widget>[];
-    final count = widget.children.length;
-    final step = 90.0 / (count - 1);
-    for (var i = 0, angleInDegrees = 0.0;
-        i < count;
-        i++, angleInDegrees += step) {
+    final List<Widget> children = <Widget>[];
+    final int count = widget.children.length;
+    final double step = 90.0 / (count - 1);
+
+    double angleInDegrees = 0.0;
+
+    for (int i = 0; i < count; i++, angleInDegrees += step) {
       children.add(
         _ExpandingActionButton(
           directionInDegrees: angleInDegrees,
           maxDistance: widget.distance,
           progress: _expandAnimation,
-          child: GestureDetector(
-            onTap: () {
-              _toggle();
-              (widget.children[i] as ActionButton).onPressed?.call();
-            },
-            child: widget.children[i] as ActionButton,
-          ),
+          child: widget.children[i],
         ),
       );
     }
+
     return children;
   }
 
@@ -136,8 +131,8 @@ class _ExpandableFabState extends State<ExpandableFab>
           _open ? 0.7 : 1.0,
           1.0,
         ),
-        duration: Duration(milliseconds: 250),
-        curve: Interval(0.0, 0.5, curve: Curves.easeOut),
+        duration: const Duration(milliseconds: 250),
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
         child: AnimatedOpacity(
           opacity: _open ? 0.0 : 1.0,
           curve: const Interval(0.25, 1.0, curve: Curves.easeInOut),
@@ -159,12 +154,11 @@ class _ExpandableFabState extends State<ExpandableFab>
 @immutable
 class _ExpandingActionButton extends StatelessWidget {
   const _ExpandingActionButton({
-    Key? key,
     required this.directionInDegrees,
     required this.maxDistance,
     required this.progress,
     required this.child,
-  }) : super(key: key);
+  });
 
   final double directionInDegrees;
   final double maxDistance;
@@ -175,8 +169,8 @@ class _ExpandingActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: progress,
-      builder: (context, child) {
-        final offset = Offset.fromDirection(
+      builder: (BuildContext context, Widget? child) {
+        final Offset offset = Offset.fromDirection(
           directionInDegrees * (math.pi / 180.0),
           progress.value * maxDistance,
         );
@@ -197,23 +191,26 @@ class _ExpandingActionButton extends StatelessWidget {
 @immutable
 class ActionButton extends StatelessWidget {
   const ActionButton({
-    Key? key,
+    super.key,
     this.onPressed,
     required this.icon,
-  }) : super(key: key);
+  });
 
   final VoidCallback? onPressed;
   final Widget icon;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32),
-        color: Colors.black45,
+    final ThemeData theme = Theme.of(context);
+    return Material(
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
+      color: theme.unselectedWidgetColor,
+      elevation: 4.0,
+      child: IconButton(
+        onPressed: onPressed,
+        icon: icon,
       ),
-      child: icon,
     );
   }
 }

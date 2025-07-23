@@ -1,25 +1,26 @@
 import 'package:flutter/material.dart';
 
 class AliceAlertHelper {
+  AliceAlertHelper._();
+
   ///Helper method used to open alarm with given title and description.
   static void showAlert(
     BuildContext context,
     String title,
     String description, {
-    String firstButtonTitle = "Accept",
+    String firstButtonTitle = 'Accept',
     String? secondButtonTitle,
-    Function? firstButtonAction,
-    Function? secondButtonAction,
+    VoidCallback? firstButtonAction,
+    VoidCallback? secondButtonAction,
     Brightness? brightness,
   }) {
-    List<Widget> actions = [];
+    final List<Widget> actions = <Widget>[];
     actions.add(
       ElevatedButton(
         child: Text(firstButtonTitle),
         onPressed: () {
-          if (firstButtonAction != null) {
-            firstButtonAction();
-          }
+          firstButtonAction?.call();
+
           Navigator.of(context).pop();
         },
       ),
